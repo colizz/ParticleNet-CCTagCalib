@@ -1,0 +1,28 @@
+name: cctag
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - conda
+  - python=3.8
+  - root
+  - jupyterlab
+  - pandas
+  - pip:
+    - awkward==0.13.0
+    - awkward1==0.4.5
+    - boost-histogram==0.11.1
+    - coffea==0.6.46
+    - cycler==0.10.0
+    - lz4==3.1.0
+    - matplotlib==3.3.2
+    - mplhep==0.2.9
+    - scikit-learn==0.23.2
+    - scipy==1.5.3
+    - seaborn==0.11.0
+    - uproot==3.12.0
+    - uproot-methods==0.7.4
+    - uproot4==0.0.27
+    - xgboost==0.72.1
+    - xxhash==2.0.0
+prefix: /home/licq/utils/miniconda3
