@@ -21,7 +21,7 @@ import argparse
 parser = argparse.ArgumentParser('create all fit routine')
 parser.add_argument('--dir', default=None, help='Path to the base directory of ROOT output.')
 parser.add_argument('--bdt', default='900', help='The BDT folder to run. Only in the routine for BDT varying validation we set --bdt 840,860,880,900,920,940')
-parser.add_argument('--outweb', default=None, help='Output directory in web/ to contain the website elements.')
+parser.add_argument('--outweb', default=None, help='Output relative directory to contain the website elements.')
 args = parser.parse_args()
 
 if not args.dir:

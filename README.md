@@ -91,7 +91,7 @@ After complete the first section ("make templates for fit") of the notebook, we 
 
 ```shell
 cd cmssw/
-soruce setup_cmssw_env_first_run.sh
+source setup_cmssw_env_first_run.sh
 ```
 
 Then, we create the launch script for all the fit points, and start to run each point as an individial background process:

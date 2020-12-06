@@ -223,7 +223,7 @@ for sam in glob.glob(args.dir):
         bdt = 'bdt'+bdtval
         for pt in os.listdir(os.path.join(abspath, sam, 'Cards', bdt)):
             inputdir = os.path.join(abspath, sam, 'Cards', bdt, pt)
-            print (inputdir)
+            print ('- launch:', inputdir)
             ## Submit a multiprocess job
             p = Process(target=make_plots_wrapper, args=(inputdir, unce_list,))
             p.start()
