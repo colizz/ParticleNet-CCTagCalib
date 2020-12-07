@@ -107,7 +107,8 @@ def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=Tru
                 if not show_plots:
                     plt.close()
 
-def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, draw_stacked_plots=False, save_unce_comp_plots=True, show_plots=True):
+
+def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, draw_stacked_plots=False, save_unce_comp_plots=True, show_plots=True, norm_unce=False):
     r"""Make the shape comparison and/or the stacked histograms for a specific type of shape uncertainty based on the fitDiagnostics.root
     
     Arguments:
@@ -117,6 +118,7 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
         draw_stacked_plots: If or not also draw the stacked histograms (drawing the comparison plots is the default option). Default: False
         save_unce_comp_plots: If or not store the shape comparison plot. Default: True
         show_plots: If or not show plot in the runtime. Default: True
+        norm_unce: Normalize the up/down uncertainty to nominal. Default: False
     """
 
     year = 2016 if 'SF2016' in inputdir else 2017 if 'SF2017' in inputdir else 2018 if 'SF2018' in inputdir else None
@@ -141,14 +143,20 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
         yerror  = [np.sqrt(uproot.open(f'{inputdir}/nominal/inputs_{b}.root')[f'{cat}'].allvariances[1:-1]) for cat in cat_order[::-1]]
         content_up   = [uproot.open(f'{inputdir}/{unce_type}Up/inputs_{b}.root')[f'{cat}_{unce_type}Up'].allvalues[1:-1] for cat in cat_order[::-1]]
         content_down = [uproot.open(f'{inputdir}/{unce_type}Down/inputs_{b}.root')[f'{cat}_{unce_type}Down'].allvalues[1:-1] for cat in cat_order[::-1]]
+        lab_suf = ''
+        if norm_unce:
+            lab_suf = '(norm)'
+            for icat, cat in enumerate(cat_order[::-1]):
+                content_up[icat] *= content[icat].sum() / content_up[icat].sum()
+                content_down[icat] *= content[icat].sum() / content_down[icat].sum()
         f, ax = plt.subplots(figsize=(12,12))
         hep.cms.label(data=True, paper=False, year=year, ax=ax, rlabel=r'%s $fb^{-1}$ (13 TeV)'%lumi[year], fontname='sans-serif')
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
             hep.histplot(content[icat], yerr=yerror[icat], bins=edges, label=f'QCD ({cat})', color=color)
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
-            hep.histplot(content_up[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Up ', color=color, linestyle='--')
+            hep.histplot(content_up[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Up {lab_suf}', color=color, linestyle='--')
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
-            hep.histplot(content_down[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Down', color=color, linestyle=':')
+            hep.histplot(content_down[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Down {lab_suf}', color=color, linestyle=':')
         ax.set_xlim(xmin, xmax); ax.set_xlabel(vlabel, ha='right', x=1.0); ax.set_ylabel('Events / bin', ha='right', y=1.0)
         ax.legend(prop={'size': 18})
         
