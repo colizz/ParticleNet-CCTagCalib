@@ -1,7 +1,7 @@
 # ParticleNet-CCTagCalib
 
 This mini repository aims to derive ParticleNet AK15 cc-tagger SFs, based on the g->cc proxy jets method. 
-The introduction of the method can be found in [these slides (updated Nov.4)](https://indico.cern.ch/event/961164/contributions/4072757/attachments/2136889/3599708/20.11.04_Hbb_ParticleNet%20calibration%20for%20VHcc%20boosted%20analysis%20using%20g-_cc.pdf). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
+The introduction of the method can be found in [these slides (updated Dec.8)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
 
 The main idea is to use similar characteristics between the resonance double charm (cc) jet and the g->cc splitting jet, the latter confined in a specific phase-space. 
 By deriving the SFs for the latter, we can transfer the SFs and use them in the H->cc jet. 
@@ -87,21 +87,22 @@ After complete the first section ("make templates for fit") of the notebook, we 
 
  `CMMSSW_10_6_18` is required to run the Higgs Combine tool. Please note that you can use the CMS singularity container by doing `cmssw-cc7` if the machine is not running a cc7 system.
 
-**In a cc7 environment**, please load the cms-sw environment and install the package for the first run:
+**In a cc7 environment**, by sourcing the following script, we can load the cms-sw environment and install the package `HiggsAnalysis` and `CombineHarvester` for the first run:
 
 ```shell
 cd cmssw/
 source setup_cmssw_env_first_run.sh
 ```
 
-Then, we create the launch script for all the fit points, and start to run each point as an individial background process:
+Then, we create the launch script for all the fit points, and start to run each point as an individial background process.
+The fit is implemented by the Higgs Combine.
 
 ```shell
 ./create_all_fit_routine.py --dir '../results/*' --full  ## create the launch script
 source bg_runfit.sh  ## run the script
 ```
 
-one can use `jobs` to check the status in the runtime.
+As all processes run in the background, one can use `jobs` to check the status in the runtime.
 
 When all jobs are finished, we can **return to the conda environment**:
 

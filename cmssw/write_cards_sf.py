@@ -43,7 +43,8 @@ shapeSysts = {
     'fracLight':['flvL'],
 #     'qcdSyst':all_procs, # deprecated
 #     'qcdKdeSyst':all_procs, # deprecated
-#     'psWeight':all_procs, # temporarily disabled for test
+#     'psWeightIsr':all_procs, # temporarily disabled for test
+#     'psWeightFsr':all_procs, # temporarily disabled for test
     'sfBDTRwgt':all_procs,
     'sfBDTFloAround':all_procs,
     }
