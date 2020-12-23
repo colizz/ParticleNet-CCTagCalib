@@ -1,7 +1,7 @@
 # ParticleNet-CCTagCalib
 
 This mini repository aims to derive ParticleNet AK15 cc-tagger SFs, based on the g->cc proxy jets method. 
-The introduction of the method can be found in [these slides (updated Dec.8)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
+The introduction of the method can be found in [these slides (final version: Dec.7)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
 
 The main idea is to use similar characteristics between the resonance double charm (cc) jet and the g->cc splitting jet, the latter confined in a specific phase-space. 
 By deriving the SFs for the latter, we can transfer the SFs and use them in the H->cc jet. 
@@ -79,7 +79,7 @@ python -u sfbdt_xgb.py --model-dir sfbdt_results --predict --jet-idx 2 --bdt-var
 
 ### Derive the templates for fit
 
-We first derive the histogram templates in the ROOT-format used as the input to Higgs Combine tool. To do that, please start a Jupyter service (already installed properly in conda) and open the notebook `ak15_sf_main.ipynb`. **All details are documented in this notebook.**
+We first derive the histogram templates in the ROOT-format used as the input to Higgs Combine tool. To do that, please start a Jupyter service (already installed properly in conda) and open the notebook `ak15_sf_main_ak.ipynb`. **All details are documented in this notebook.**
 
 After complete the first section ("make templates for fit") of the notebook, we can find our output files stored in `results/`.
 
