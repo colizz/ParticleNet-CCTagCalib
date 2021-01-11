@@ -36,8 +36,8 @@ It also requires `jupyter` to run the notebook. We recommend to use the `Minicon
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p ./miniconda  # for test: put the miniconda folder here
 source miniconda/bin/activate
-## Create new env "cctag" defined in yaml. This may take for a while
-conda env create -f conda_env.yaml
+## Create new env "cctag" defined in yml. This may take for a while
+conda env create -f conda_env.yml
 ```
 
 The `cctag` conda environment only needs to be created once. After that, one can simply activate the `cctag` env by:
