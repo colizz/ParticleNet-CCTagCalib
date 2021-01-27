@@ -25,6 +25,8 @@ and download the test dataset. The dataset is stored on CERNBox and set with CMS
 rsync -a --progress <user>@lxplus.cern.ch:/eos/user/c/coli/cms-repo/ParticleNet-CCTagCalib/samples .
 ```
 
+The framework to produce the dataset is provided in the appendix.
+
 ## Environment
 
 The code requires python3, with the dependency of packages: `ROOT`, `uproot`, `boost_histogram`, `pandas`, `seaborn`, `xgboost`. 
@@ -127,3 +129,21 @@ After that we can open the file `web/testdir/<sample name>/bdt900` in the web br
 It should be very much like this [example webpage](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/exampleweb/bdt900). Now the work is done -- please enjoy ;)
 
 > (†) **Note**: The code to produce the plots in section "pre/post-fit template" is currently not valid in this repo due to other dependency issues, but since all information is in `fitDiagnostics.root`, they are technically doable to reproduce.
+
+## Appendix
+
+### Produce the input datasets
+
+The input ntuples are produced using [NanoHRT-tools](https://github.com/hqucms/NanoHRT-tools), which is based on the CMS utilitiy [nanoAOD-tools](https://github.com/cms-nanoAOD/nanoAOD-tools).
+
+To quickly reproduce one set of the inputs, one can try the following on lxplus:
+
+```shell
+git clone git@github.com:colizz/NanoHRT-tools.git -b dev-nohtwbdt ## here use a customised branch
+## -- Set up the framework. See README --
+## Then make the trees using the command
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/mc/ -o /afs/cern.ch/user/<your path>/20201028_nohtwbdt_v2 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2016
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/data/ -o /afs/cern.ch/user/<your path>/20201028_nohtwbdt_v2 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2016 --run-data
+```
+
+Then it should generate the condor script to submit. After all jobs are completed, one can append `--post` to the above two commands to post-process on the output.
