@@ -1,7 +1,7 @@
 # ParticleNet-CCTagCalib
 
 This mini repository aims to derive ParticleNet AK15 cc-tagger scale factors (SF), based on the g->cc proxy jet method.
-The introduction of the method can be found in [these slides (final version: Dec.7)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). A detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
+The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). A detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
 
 The main idea is to use similar characteristics between the resonance double charm (cc) jet and the g->cc splitting jet, the latter confined in a specific phase-space. 
 By deriving the SFs for the latter, we can transfer the SFs and use them in the H->cc jet. 
@@ -32,7 +32,7 @@ The framework to produce the dataset is provided in the appendix.
 The code requires python3, with the dependency of packages: `ROOT`, `uproot`, `boost_histogram`, `pandas`, `seaborn`, `xgboost`. 
 It also requires `jupyter` to run the notebook. We recommend to use the `Miniconda`.
 
- It is doable to install the `Miniconda`, then easily restore the conda environment<sup>*</sup> using the yaml config provided:
+It is doable to install the `Miniconda`, then easily restore the conda environment<sup>*</sup> using the yaml config provided (do it only at the first time):
 
 ```shell
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -48,10 +48,16 @@ The `cctag` conda environment only needs to be created once. After that, one can
 conda activate cctag
 ```
 
+**Alternatively**, one can do the following to update the existing `cctag` env using the latest yaml file.
+
+```
+conda env update --name cctag --file conda_env.yml
+```
+
 > (*) **Note**: we use the specific `xgboost` version **0.72.1** instead of the latest (1.2) in order to match with the pre-intalled version in `CMMSSW_10_6_18`, as we may use `Miniconda` env for BDT training and the latter for prediction. 
 > (Need to handle with caution, since no obvious error message is reported even if the versions are not compatible.)
 
-Apart from the `Miniconda`, we also use the `CMMSSW_10_6_18` environment to run Higgs Combine tool for the fit process.
+Apart from the `Miniconda`, we also use the `CMMSSW_10_6_18` environment to run Higgs combine tool for the fit process.
 
 ## Training and application of BDT
 
@@ -79,15 +85,21 @@ python -u sfbdt_xgb.py --model-dir sfbdt_results --predict --jet-idx 2 --bdt-var
 
 ## SF derivation
 
+### Setup `config.yml`
+
+In `config.yml` we need to provide necessary settings for SF derivation. In our current setup, we specify the sample directory and the year condition to be 2018. The information of tagger (the variable name, type, and the working point setup) and the pT range of fit is also provided in the file.
+
 ### Derive the templates for fit
 
-We first derive the histogram templates in the ROOT-format used as the input to Higgs Combine tool. To do that, please start a Jupyter service (already installed properly in conda) and open the notebook `ak15_sf_main_ak.ipynb`. **All details are documented in this notebook.**
+We first derive the histogram templates in the ROOT-format used as the input to Higgs combine tool. To do that, please start a Jupyter service (already installed properly in conda) and open the notebook `ak15_sf_main_ak.ipynb`. **All details are documented in this notebook.**
+
+(Note: alternatively, one can use `ak15_sf_main_pd.ipynb` which has the same goal but is implemented by pandas DataFrame. This notebook may consume more RAM but can runs faster.)
 
 After complete the first section ("make templates for fit") of the notebook, we can find our output files stored in `results/`.
 
 ### Implement the fit
 
- `CMMSSW_10_6_18` is required to run the Higgs Combine tool. Please note that you can use the CMS singularity container by doing `cmssw-cc7` if the machine is not running a cc7 system.
+ `CMMSSW_10_6_18` is required to run the Higgs combine tool. Please note that you can use the CMS singularity container by doing `cmssw-cc7` if the machine is not running a cc7 system.
 
 **In a cc7 environment**, by sourcing the following script, we can load the cms-sw environment and install the package `HiggsAnalysis` and `CombineHarvester` for the first run:
 
@@ -168,14 +180,14 @@ cd ..
 
 The input ntuples are produced using [NanoHRT-tools](https://github.com/hqucms/NanoHRT-tools), which is based on the CMS utilitiy [nanoAOD-tools](https://github.com/cms-nanoAOD/nanoAOD-tools).
 
-To quickly reproduce one set of the inputs, one can try the following on lxplus:
+The framework takes NanoAOD as inputs and writes out flat ntuples. In our workflow, the input samples are QCD multijet events (which is dominant) as well as heavy resonance contribution from the ttbar, single top and V+jets, see the sample config file e.g. [here](https://github.com/hqucms/NanoHRT-tools/blob/master/run/custom_samples/qcd_2018_MC.yaml). Currently we use the branch [`dev/unify-producer`](https://github.com/hqucms/NanoHRT-tools/tree/dev/unify-producer).
+
+Please follow the introduction in the above link. Note that we shall use `CMSSW_11_1_0_pre5_PY3` to support `ONNXRuntime` in order to use the ML infrastructure to re-run the trigger value, as mentioned in README. If the tagger score cannot be obtained from the current NanoAOD variable, we may need to consider produce an alternative set of NanoAODs to equip with the score.
+
+The script to produce the year 2017 of our test ntuples (on lxplus):
 
 ```shell
-git clone git@github.com:colizz/NanoHRT-tools.git -b dev-nohtwbdt ## here use a customised branch
-## -- Set up the framework. See README --
-## Then make the trees using the command
-python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/mc/ -o /afs/cern.ch/user/<your path>/20201028_nohtwbdt_v2 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2016
-python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/data/ -o /afs/cern.ch/user/<your path>/20201028_nohtwbdt_v2 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2016 --run-data
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/mc/   -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/data/ -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017 --run-data
 ```
 
-Then it should generate the condor script to submit. After all jobs are completed, one can append `--post` to the above two commands to post-process on the output.

@@ -1,6 +1,6 @@
 ## Name and class of the tagger
 tagger: 
-  var: fj_x_ParticleNetMD_XccVsQCD
+  var: fj_x_ParticleNetMD_XccVsQCD  ## fj_x is a placeholder of fj_1 & fj_2
   type: cc  ## cc or bb
   working_points:
     name: pnV02
