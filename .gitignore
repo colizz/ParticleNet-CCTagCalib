@@ -1,7 +1,11 @@
 .ipynb_checkpoints
-cmssw/CMSSW_10_2_18
+__init__.py
+__pycache__
+cmssw/CMSSW_*
+tmp*
+bak*
 samples
 sfbdt_results
-results
-plots
-web
+results*
+plots*
+web*

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import uproot
+import uproot3 as uproot
 import numpy as np
 import boost_histogram as bh
 import matplotlib.pyplot as plt
@@ -26,13 +26,15 @@ import glob
 import argparse
 parser = argparse.ArgumentParser('create all fit routine')
 parser.add_argument('--dir', default=None, help='Path to the base directory of ROOT output.')
-parser.add_argument('--bdt', default='900', help='The BDT folder to run. Only in the routine for BDT varying validation we set --bdt 840,860,880,900,920,940')
+parser.add_argument('--bdt', default='900', help='The BDT folder to run. Set e.g. `--bdt 840,860,880,900,920,940` or `--bdt auto`.')
+parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run. e.g. --ext-unce NewTerm1,NewTerm2')
+parser.add_argument('-t', '--threads', type=int, default=8, help='Concurrent threads to run separate fits.')
 args = parser.parse_args()
 
 if not args.dir:
     raise RuntimeError('--dir is not provided!')
 
-from multiprocessing import Process
+import multiprocessing
 
 
 def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=True):
@@ -47,16 +49,18 @@ def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=Tru
     
     year = 2016 if 'SF2016' in inputdir else 2017 if 'SF2017' in inputdir else 2018 if 'SF2018' in inputdir else None
     ## Get the bin info based on inputdir
-    for vname, nbin, xmin, xmax, vlabel in bininfo_dm:
+    for vname, vlabel in bininfo_dm:
         if vname in inputdir:
             break
     else:
         raise RuntimeError('Bininfo not found')
-
-    if not isinstance(nbin, int):
-        edges, xmin, xmax, nbin = nbin, min(nbin), max(nbin), len(nbin)
-    else:
-        edges = np.linspace(xmin, xmax, nbin+1)
+    edges = uproot.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
+    if edges[0] == -np.inf:
+        edges = edges[1:]
+    if edges[-1] == np.inf:
+        edges = edges[:-1]
+    xmin, xmax, nbin = min(edges), max(edges), len(edges)
+    
     print(inputdir, '--stacked--')
     
     ## All information read from fitDiagnostics.root
@@ -79,7 +83,7 @@ def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=Tru
                 vlabel = vlabel[:-2]
 
             content = [fit[f'{rootdir}/{b}/{cat}'].allvalues[1:-1] for cat in cat_order]
-            hep.histplot(content, bins=edges, label=[f'QCD ({cat})' for cat in cat_order], histtype='fill', edgecolor='k', linewidth=1, stack=True) ## draw MC
+            hep.histplot(content, bins=edges, label=[f'MC ({cat})' for cat in cat_order], histtype='fill', edgecolor='k', linewidth=1, stack=True) ## draw MC
             bkgtot, bkgtot_err = fit[f'{rootdir}/{b}/total'].allvalues[1:-1], np.sqrt(fit[f'{rootdir}/{b}/total'].allvariances[1:-1])
             if plot_unce:
                 ax.fill_between(edges, (bkgtot-bkgtot_err).tolist()+[0], (bkgtot+bkgtot_err).tolist()+[0], label='BKG total unce.', step='post', hatch='\\\\', edgecolor='dimgrey', facecolor='none', linewidth=0) ## draw bkg unce.
@@ -122,19 +126,22 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
     """
 
     year = 2016 if 'SF2016' in inputdir else 2017 if 'SF2017' in inputdir else 2018 if 'SF2018' in inputdir else None
-    for vname, nbin, xmin, xmax, vlabel in bininfo_dm:
+    for vname, vlabel in bininfo_dm:
         if vname in inputdir:
             break
     else:
         raise RuntimeError('Bininfo not found')
+    
     import os
     if not isinstance(unce_type, str) or not os.path.exists(f'{inputdir}/{unce_type}Up') or not os.path.exists(f'{inputdir}/{unce_type}Down'):
         raise RuntimeError('Uncertainty type not exist')
+    edges = uproot.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
+    if edges[0] == -np.inf:
+        edges = edges[1:]
+    if edges[-1] == np.inf:
+        edges = edges[:-1]
+    xmin, xmax, nbin = min(edges), max(edges), len(edges)
 
-    if not isinstance(nbin, int):
-        edges, xmin, xmax, nbin = nbin, min(nbin), max(nbin), len(nbin)
-    else:
-        edges = np.linspace(xmin, xmax, nbin+1)
     print(inputdir, '--unce--', unce_type)
     
     # curves for unce
@@ -152,11 +159,11 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
         f, ax = plt.subplots(figsize=(12,12))
         hep.cms.label(data=True, paper=False, year=year, ax=ax, rlabel=r'%s $fb^{-1}$ (13 TeV)'%lumi[year], fontname='sans-serif')
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
-            hep.histplot(content[icat], yerr=yerror[icat], bins=edges, label=f'QCD ({cat})', color=color)
+            hep.histplot(content[icat], yerr=yerror[icat], bins=edges, label=f'MC ({cat})', color=color)
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
-            hep.histplot(content_up[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Up {lab_suf}', color=color, linestyle='--')
+            hep.histplot(content_up[icat], bins=edges, label=f'MC ({cat}) {unce_type}Up {lab_suf}', color=color, linestyle='--')
         for icat, (cat, color) in enumerate(zip(cat_order[::-1], ['blue', 'red', 'green'])):
-            hep.histplot(content_down[icat], bins=edges, label=f'QCD ({cat}) {unce_type}Down {lab_suf}', color=color, linestyle=':')
+            hep.histplot(content_down[icat], bins=edges, label=f'MC ({cat}) {unce_type}Down {lab_suf}', color=color, linestyle=':')
         ax.set_xlim(xmin, xmax); ax.set_xlabel(vlabel, ha='right', x=1.0); ax.set_ylabel('Events / bin', ha='right', y=1.0)
         ax.legend(prop={'size': 18})
         
@@ -186,7 +193,7 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
 
                 content = [uproot.open(f'{inputdir}/{filedir}/inputs_{b}.root')[f'{cat}{roothist_suf}'].allvalues[1:-1] for cat in cat_order]
                 bkgtot = np.sum(content, axis=0)
-                hep.histplot(content, bins=edges, label=[f'QCD ({cat})' for cat in cat_order], histtype='fill', edgecolor='k', linewidth=1, stack=True) ## draw MC
+                hep.histplot(content, bins=edges, label=[f'MC ({cat})' for cat in cat_order], histtype='fill', edgecolor='k', linewidth=1, stack=True) ## draw MC
                 data = uproot.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvalues[1:-1]
                 data_errh = data_errl = np.sqrt(uproot.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvariances[1:-1])
                 hep.histplot(data, yerr=(data_errl, data_errh), bins=edges, label='Data', histtype='errorbar', color='k', markersize=15, elinewidth=1.5) ## draw data
@@ -198,6 +205,9 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
                 ax1.plot([xmin,xmax], [1,1], 'k'); ax1.plot([xmin,xmax], [0.5,0.5], 'k:'); ax1.plot([xmin,xmax], [1.5,1.5], 'k:')
 
                 hep.histplot(data/bkgtot, yerr=(data_errl/bkgtot, data_errh/bkgtot), bins=edges, histtype='errorbar', color='k', markersize=15, elinewidth=1)
+                
+                if not show_plots:
+                    plt.close()
 
 
 def make_plots_wrapper(inputdir, unce_list):
@@ -207,7 +217,8 @@ def make_plots_wrapper(inputdir, unce_list):
         inputdir: Directory to fitDiagnostics.root
         unce_list: List of shape uncertainties to draw the uncertainty plot
     """
-    
+    print ('- launch:', inputdir)
+    mpl.use('AGG') # no rendering plots in the window
     try:
         make_stacked_plots(inputdir, show_plots=False)
         for unce_type in unce_list:
@@ -216,22 +227,35 @@ def make_plots_wrapper(inputdir, unce_list):
         print('inputdir failed:', inputdir, 'Error:', e)
 
 
-lumi = {2016: 35.92, 2017: 41.53, 2018: 59.74}
-bininfo_dm = [ # vtitle_contains, bins, xmin, xmax, vlabel
-    ("csvv2_var22binsv2", [0,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.98,0.99,0.995,1], None, None, r'$CSVv2$'),
-    ('msv12_ptmax_log_var22binsv2', [-0.4,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,2.5,3.2,3.9], None, None, r'$log(m_{SV1,p_{T}\,max}\; /GeV)$'),
-    ('msv12_dxysig_log_var22binsv2', [-0.8,-0.4,0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,2.5,3.2], None, None, r'$log(m_{SV1,d_{xy}sig\,max}\; /GeV)$'),
-]
-color_order, cat_order = sns.color_palette('cubehelix_r', 3), ['flvL','flvB','flvC'] # for hcc
-unce_list = ['pu','fracBB','fracCC','fracLight','sfBDTRwgt','sfBDTFloAround']
+import yaml
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(dir_path, 'config.yml')) as f:
+    config = yaml.safe_load(f)
 
-abspath = os.path.abspath(os.getcwd())
-for sam in glob.glob(args.dir):
-    for bdtval in args.bdt.split(','):
-        bdt = 'bdt'+bdtval
-        for pt in os.listdir(os.path.join(abspath, sam, 'Cards', bdt)):
-            inputdir = os.path.join(abspath, sam, 'Cards', bdt, pt)
-            print ('- launch:', inputdir)
-            ## Submit a multiprocess job
-            p = Process(target=make_plots_wrapper, args=(inputdir, unce_list,))
-            p.start()
+if config['tagger']['type'].lower() == 'cc':
+    flv1, flv2 = 'C', 'B'
+elif config['tagger']['type'].lower() == 'bb':
+    flv1, flv2 = 'B', 'C'
+else:
+    raise RuntimeError('Tagger type in config.yml must be cc or bb.')
+
+lumi = {2016: 35.92, 2017: 41.53, 2018: 59.74}
+bininfo_dm = [ # vtitle_contains, vlabel
+    ("csvv2", r'$CSVv2$'),
+    ('msv12_ptmax_log', r'$log(m_{SV1,p_{T}\,max}\; /GeV)$'),
+    ('msv12_dxysig_log', r'$log(m_{SV1,d_{xy}sig\,max}\; /GeV)$'),
+]
+color_order, cat_order = sns.color_palette('cubehelix_r', 3), ['flvL', f'flv{flv2}', f'flv{flv1}']
+unce_list = ['pu','fracBB','fracCC','fracLight','psWeightIsr','psWeightFsr','sfBDTRwgt']
+if args.ext_unce is not None:
+    unce_list += args.ext_unce.split(',')
+
+from cmssw.utils import find_valid_runlist
+
+pool = multiprocessing.Pool(processes=args.threads)
+for inputdir in find_valid_runlist(args.dir, bdt_mode=args.bdt):
+    ## Submit a multiprocess job
+    pool.apply_async(make_plots_wrapper, args=(inputdir, unce_list,))
+            
+pool.close()
+pool.join()
