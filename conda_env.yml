@@ -8,21 +8,27 @@ dependencies:
   - root
   - jupyterlab
   - pandas
+  - pip=21.0.1
   - pip:
-    - awkward==0.20.0
+    - awkward==1.1.2
+    - awkward0==0.15.5
     - awkward1==1.0.0
-    - boost-histogram==0.12.1
-    - coffea==0.7.0
+    - boost-histogram==1.0.0
+    - cloudpickle==1.6.0
+    - coffea==0.7.1
     - cycler==0.10.0
     - lz4==3.1.3
     - matplotlib==3.3.4
-    - mplhep==0.2.16
+    - mplhep==0.2.17
+    - numba==0.53.0
+    - pyyaml==5.4.1
     - scikit-learn==0.24.1
-    - scipy==1.6.0
-    - seaborn==0.11.0
-    - uproot==4.0.3
-    - uproot-methods==0.7.4
-    - uproot4==4.0.3
-    - xgboost==0.72.1
+    - scipy==1.6.1
+    - seaborn==0.11.1
+    - uproot==4.0.6
+    - uproot-methods==0.8.0
+    - uproot3==3.14.4
+    - uproot4==4.0.0
+    - xgboost===0.72.1
     - xxhash==2.0.0
 prefix: /home/licq/utils/miniconda3
