@@ -1,7 +1,7 @@
 # ParticleNet-CCTagCalib
 
 This mini repository aims to derive ParticleNet AK15 cc-tagger scale factors (SF), based on the g->cc proxy jet method.
-The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/980437/contributions/4134498/attachments/2158018/3640299/20.12.07_BTV_ParticleNet%20cc-tagger%20calibration%20for%20AK15%20jets%20using%20the%20g-_cc%20method.pdf). A detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
+The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/1014620/contributions/4265127/attachments/2203682/3728092/20.03.08_BTV_Update%20on%20ParticleNet%20SF%20method.pdf). A detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
 
 The main idea is to use similar characteristics between the resonance double charm (cc) jet and the g->cc splitting jet, the latter confined in a specific phase-space. 
 By deriving the SFs for the latter, we can transfer the SFs and use them in the H->cc jet. 
