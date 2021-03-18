@@ -157,20 +157,23 @@ In V2 of the framework, we introduce an additional uncertainty term obtained fro
 ## Make a clean copy of the produced templates
 mkdir results/fitvarrwgt
 \cp -ar results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_* results/fitvarrwgt/
-\rm -f results/fitvarrwgt/*/*/*/*/*.* 
+\rm -f results/fitvarrwgt/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*/*/*/*/*.*
 ```
 
 ```shell
 ## Load the cmssw env and run fit
-cd cmssw/CMSSW_10_2_18/src/; cmsenv; cd ../..
+conda deactivate
+cd cmssw/CMSSW_10_2_18/src/ && cmsenv && cd ../..
 ./create_all_fit_routine.py --dir '../results/fitvarrwgt/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt central -t 10 --ext-unce fitVarRwgt
 source bg_runfit.sh
 ```
 
-Then make the webpage again. (`--draw-sfbdt-vary-dryrun`: no need to reproduce the sfBDT varying plots again but keep this section on HTML.)
+Then make the webpage again. This time we append argument `--show-fitvarrwgt-unce` to show the new uncertainty source in the webpage. (`--draw-sfbdt-vary-dryrun`: no need to reproduce the sfBDT varying plots again but keep this section on HTML.)
 
 ```shell
+## Return to the conda env, then make the webpage again
 cd ..
+conda activate cctag
 ./make_html.py --dir 'results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt auto --outweb web/testdir --draw-sfbdt-vary-dryrun --show-unce-breakdown --show-fitvarrwgt-unce
 ```
 
