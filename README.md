@@ -221,11 +221,20 @@ The input ntuples are produced using [NanoHRT-tools](https://github.com/hqucms/N
 
 The framework takes NanoAOD as inputs and writes out flat ntuples. In our workflow, the input samples are QCD multijet events (which is dominant) as well as heavy resonance contribution from the ttbar, single top and V+jets, see the sample config file e.g. [here](https://github.com/hqucms/NanoHRT-tools/blob/master/run/custom_samples/qcd_2018_MC.yaml). Currently we use the branch [`dev/unify-producer`](https://github.com/hqucms/NanoHRT-tools/tree/dev/unify-producer).
 
-Please follow the introduction in the above link. Note that we shall use `CMSSW_11_1_0_pre5_PY3` to support `ONNXRuntime` in order to use the ML infrastructure to re-run the trigger value, as mentioned in README. If the tagger score cannot be obtained from the current NanoAOD variable, we may need to consider produce an alternative set of NanoAODs to equip with the score.
+Please follow the introduction in the above link. The script to produce the ntuples (i.e. the test datasets used above) to calibrate the ParticleNet Xbb AK8 tagger is shown below.
 
-The script to produce the year 2017 of our test ntuples (on lxplus):
+For EOY datasets, we use the custom NanoAOD to derive the ntuples. For year condition 2016, do the following on lxplus (for year 2017, replace all 2016 to 2017).
 
 ```shell
-python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/mc/   -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017
-python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/data/ -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017 --run-data
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/mc/   -o <output-path>/particlenet_ak8_20210113 --sample-dir custom_samples --jet-type ak8 --channel qcd --year 2016
+python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2016/data/ -o <output-path>/particlenet_ak8_20210113 --sample-dir custom_samples --jet-type ak8 --channel qcd --year 2016 --run-data
 ```
+
+For EOY datasets in year condition 2018, do the following on FNAL cluster.
+
+```shell
+python runHeavyFlavTrees.py -i /eos/uscms/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/mc/   -o <output-path>/particlenet_ak8_20210113 --sample-dir custom_samples --jet-type ak8 --channel qcd --year 2018
+python runHeavyFlavTrees.py -i /eos/uscms/store/group/lpcjme/nanoTuples/v2_30Apr2020/2018/data/ -o <output-path>/particlenet_ak8_20210113 --sample-dir custom_samples --jet-type ak8 --channel qcd --year 2018 --run-data
+```
+
+For UL datasets, the framework is under development.
