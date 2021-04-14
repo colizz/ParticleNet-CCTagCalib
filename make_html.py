@@ -330,7 +330,6 @@ def make_website(indir, basedir, outdir, ptlist, user_pt_bdt_map, user_pt_bdtvar
         mkdown_str += '------------------\n'
 
     if args.show_unce_breakdown:
-        title
         mkdown_str += '# cc-tagging SF uncetainty breakdown for syst. and stat. \n'
         for wp in scanned_wp_list:
             mkdown_str += f'## **{wpname[wp]}** WP: \nLeft to right: pT in ' + ', '.join(['({}, {})'.format(ptmin, ptmax if ptmax!=100000 else '+inf') for ptmin, ptmax in ptcutlist]) + '\n\n'
