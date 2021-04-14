@@ -4,8 +4,9 @@ __pycache__
 cmssw/CMSSW_*
 tmp*
 bak*
+prep*
 samples
-sfbdt_results
 results*
 plots*
 web*
+sfbdt_results
