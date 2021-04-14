@@ -1,13 +1,15 @@
 # ParticleNet-CCTagCalib
 
+> The repo will be renamed as it has been upgraded to a general tool to calibrate any boosted-jet tagger for bb/cc type.
+
 This mini repository aims to derive ParticleNet AK15 cc-tagger scale factors (SF), based on the g->cc proxy jet method.
-The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/1014620/contributions/4265127/attachments/2203682/3728092/20.03.08_BTV_Update%20on%20ParticleNet%20SF%20method.pdf). A detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
+The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/1014620/contributions/4265127/attachments/2203682/3728092/20.03.08_BTV_Update%20on%20ParticleNet%20SF%20method.pdf). Detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
 
 The main idea is to use similar characteristics between the resonance double charm (cc) jet and the g->cc splitting jet, the latter confined in a specific phase-space. 
 By deriving the SFs for the latter, we can transfer the SFs and use them in the H->cc jet. 
 With the universality of the method, it is also possible to derive the SFs for other deep boosted-jet taggers (e.g. DeepAK*X* tagger for AK8 or AK15), and/or for the bb-tagger (by using similarities with g->bb jets).
 
-Below we will present how to run the code using a test dataset. 
+Below we will present how to run the code using a test dataset, to calibrate the ParticleNet Xbb tagger for AK8 jets.
 Following all the scripts documented below and in the notebook, one can reproduce the SFs in the test dataset.
 
 ## Startup
@@ -30,7 +32,7 @@ The framework to produce the dataset is provided in the appendix.
 ## Environment
 
 The code requires python3, with the dependency of packages: `ROOT`, `uproot`, `boost_histogram`, `pandas`, `seaborn`, `xgboost`. 
-It also requires `jupyter` to run the notebook. We recommend to use the `Miniconda`.
+It also requires `jupyter` to run the notebook. We recommend using the `Miniconda`.
 
 It is doable to install the `Miniconda`, then easily restore the conda environment<sup>*</sup> using the yaml config provided (do it only at the first time):
 
@@ -54,15 +56,17 @@ conda activate cctag
 conda env update --name cctag --file conda_env.yml
 ```
 
-> (*) **Note**: we use the specific `xgboost` version **0.72.1** instead of the latest (1.2) in order to match with the pre-intalled version in `CMMSSW_10_6_18`, as we may use `Miniconda` env for BDT training and the latter for prediction. 
+> (*) **Note**: we use the specific `xgboost` version **0.72.1** instead of the latest (1.2) in order to match with the pre-installed version in `CMMSSW_10_6_18`, as we may use `Miniconda` env for BDT training and the latter for prediction. 
 > (Need to handle with caution, since no obvious error message is reported even if the versions are not compatible.)
 
 Apart from the `Miniconda`, we also use the `CMMSSW_10_6_18` environment to run Higgs combine tool for the fit process.
 
 ## Training and application of BDT
 
+> To be updated
+
 Prior to the fit, we introduce a BDT variable (named sfBDT) which helps to discriminant the gluon contaminated jet versus the clean g->cc jet in the QCD cc-jet candidates. 
-The sfBDT is then used to define the g->cc phase space to derive the SFs. Please see the slides in the begining for more details.
+The sfBDT is then used to define the g->cc phase space to derive the SFs. Please see the slides for more details.
 
 **If you are only interested in the fit, you can simply skip this section**, as the dedicated samples we provided in the next section already include the sfBDT variable for jets.
 
@@ -85,23 +89,29 @@ python -u sfbdt_xgb.py --model-dir sfbdt_results --predict --jet-idx 2 --bdt-var
 
 ## SF derivation
 
-### Setup `config.yml`
+### Setup config YML
 
-In `config.yml` we need to provide necessary settings for SF derivation. In our current setup, we specify the sample directory and the year condition to be 2018. The information of tagger (the variable name, type, and the working point setup) and the pT range of fit is also provided in the file.
+In `cards/` we have different YML files as the configuration in different calibration scenarios. Specified in YML are the routine name, the bb/cc type for calibration, the input sample info, the tagger info, the pT ranges, as well as the info for main analysis trees used as a proxy. Detailed instruction is given in the example cards. For the standard ParticleNet Xbb calibration for AK8 jets, please use `cards/config_bb_std.yml`.
+
+### Preprocess
+
+In the step of preprocessing, the input samples are read into the framework to produce new variables used for making the templates and to extract necessary reweight factors. Please start a Jupyter service (already installed properly in conda) and run through the notebook `preprocessing.ipynb`. The intermediate files will be stored in the `prep` folder.
 
 ### Derive the templates for fit
 
-We first derive the histogram templates in the ROOT-format used as the input to Higgs combine tool. To do that, please start a Jupyter service (already installed properly in conda) and open the notebook `ak15_sf_main_ak.ipynb`. **All details are documented in this notebook.**
+We then derive the histogram templates in the ROOT-format used as the input to Higgs combine tool. Two notebooks, `make_template_pd.ipynb` and `make_template_ak.ipynb`, are designed with the same goal, using `pandas` data frame and awkward-array respectively for event processing. Each has its advantage in time or RAM saving, so you can use either one of them to derive the templates. All details are documented in this notebook.
 
-(Note: alternatively, one can use `ak15_sf_main_pd.ipynb` which has the same goal but is implemented by pandas DataFrame. This notebook may consume more RAM but can runs faster.)
+After making the templates for the main routine (see notebook), we can quickly continue to derive the SFs. Other routines are for validation purposes. The templates are stored in `results/`.
 
-After complete the first section ("make templates for fit") of the notebook, we can find our output files stored in `results/`.
+### Two environments
+
+The below steps are run in two environments that we need to distinguish. **All codes under the folder `cmssw` are run in the `CMSSW_10_6_18` env with the Higgs combine tool set up. The other code outside `cmssw` are running in the anaconda `cctag` env.**
+
+Given this rule, we will not mention the environment used below but just to make sure the code is running in the correct environment.
 
 ### Implement the fit
 
- `CMMSSW_10_6_18` is required to run the Higgs combine tool. Please note that you can use the CMS singularity container by doing `cmssw-cc7` if the machine is not running a cc7 system.
-
-**In a cc7 environment**, by sourcing the following script, we can load the cms-sw environment and install the package `HiggsAnalysis` and `CombineHarvester` for the first run:
+ `CMMSSW_10_6_18` is required to run the fit using the Higgs combine tool. In a cc7 environment, by sourcing the following script, we can load the cms-sw environment and install the package `HiggsAnalysis` and `CombineHarvester` for the first run:
 
 ```shell
 cd cmssw/
@@ -112,70 +122,96 @@ Then, we create the launch script for all the fit points, and start to run each 
 The fit is implemented by the Higgs combine tool. We run every individual fit points with the sfBDT cut at all variation values.
 
 ```shell
-./create_all_fit_routine.py --dir '../results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt auto -t 10
+./create_all_fit_routine.py --dir '../results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto -t 10
 source bg_runfit.sh
 ```
 
-When all jobs are finished, we may optionally run the full suite of fit (including the impact plot and the uncertainty breakdown) for specific fit points where sfBDT cut at the central points. Or we can go directly to the next step.
+Here, `--bdt auto` means we run over all BDT cut points as an individual fit, as their results are all required. `-t 10` specifies the threads for the concurrent run. 
+
+When all jobs are finished, we may run the full suite of fit (including the impact plot and the uncertainty breakdown) for specific fit points where sfBDT cut at the central points.
 
 ```shell
-./create_all_fit_routine.py --dir '../results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt central -t 10 --run-impact --run-unce-breakdown
-source bg_runfit.sh 
+./create_all_fit_routine.py --dir '../results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt central -t 10 --run-impact --run-unce-breakdown
+source bg_runfit.sh
+```
+
+### (*) Optional fit for the modified sfBDT cut scheme
+
+If the variable `bdt_mod_factor` is not set to `None` during the preprocessing step 3-2, we need to do alternative fit by switching to the modified sfBDT cut scheme as the results are also needed. The template making notebook should already produced corresponding templates under `results/bdtmod/`. Please run
+
+```shell
+./create_all_fit_routine.py --dir '../results/bdtmod/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto -t 10
+source bg_runfit.sh
 ```
 
 ### Organize fit results
 
-When all jobs are finished, we **return to the conda environment**:
+When all jobs are finished, we open a clean shell and enter the anaconda `cctag` environment.
 
-````shell
-cd ../ && conda activate cctag
-````
-
-and produce all necessary plots<sup>†</sup> using the script below. The idea is to read the pre-fit and post-fit information from `fitDiagnostics.root`, which is generated by the Higgs combine tool. Note that we only need to make plots for the fit with sfBDT cut at the central value.
+We then produce all necessary plots<sup>†</sup> using the script below. The idea is to read the pre-fit and post-fit information from `fitDiagnostics.root`, which is generated by the Higgs combine tool. Note that we only need to make plots for the fit with sfBDT cut at the central value.
 
 ```shell
-./make_plots.py --dir 'results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt central -t 10
+./make_plots.py --dir 'results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt central -t 10
 ```
 
 Finally, we can summarize all these results (SFs, histograms, impact plots...) on a webpage. The argument `--draw-sfbdt-vary` will create additional plots for the fitted SFs varying as a function of the sfBDT cut value.
 
 ```shell
-./make_html.py --dir 'results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt auto --outweb web/testdir --draw-sfbdt-vary --show-unce-breakdown
+./make_html.py --dir 'results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto --outweb web/Xbb --draw-sfbdt-vary --show-unce-breakdown --combine-bdtmod
 ```
 
 It extracts the SFs from the log file, copies all the plots to the output folder and writes an HTML to organize them in a neat way. 
-After that we can open the file `web/testdir/<sample name>/index.html` in the web browser. 
-It should be very much like this [example webpage](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/exampleweb/bdt900). Now the work is done -- please enjoy ;)
+After that we can open the file `web/Xbb/<sample name>` in the web browser. 
+It should be very much like this [example webpage](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/exampleweb/bdt900).
 
 > (†) **Note**: The code to produce the plots in section "pre/post-fit template" is currently not valid in this repo due to other dependency issues, but since all information is in `fitDiagnostics.root`, they are technically doable to reproduce.
 
-### Run additional fit with argument `fitVarRwgt`
+### (*) Include modified sfBDT scheme results in the web
 
-In V2 of the framework, we introduce an additional uncertainty term obtained from an alternative fit that applies a reweighting on the fit variable in the "pass+fail" inclusive MC. To obtain this uncertainty, we need to re-run the fit, collect the fitted SFs, calculate the uncertainty, then form the webpage. As the templates for this uncertainty are already produced in the subfolder `fitVarRwgt(Up|Down)`, we simply re-run the fit with this extra uncertainty source included via the argument ` --ext-unce fitVarRwgt`
+The fit results from the modified sfBDT scheme can be collected and shown on the webpage.
 
 ```shell
-## Make a clean copy of the produced templates
-mkdir results/fitvarrwgt
-\cp -ar results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_* results/fitvarrwgt/
-\rm -f results/fitvarrwgt/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*/*/*/*/*.*
+./make_plots.py --dir 'results/bdtmod/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt central -t 10
+./make_html.py --dir 'results/bdtmod/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto --outweb web/Xbb_bdtmod --draw-sfbdt-vary
 ```
 
+Besides, following the strategy that we combine the results from both schemes to determine the "max d" uncertainty source, we re-make the original web by adding `--combine-bdtmod`.
+
 ```shell
-## Load the cmssw env and run fit
-conda deactivate
-cd cmssw/CMSSW_10_2_18/src/ && cmsenv && cd ../..
-./create_all_fit_routine.py --dir '../results/fitvarrwgt/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt central -t 10 --ext-unce fitVarRwgt
+./make_html.py --dir 'results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto --outweb web/Xbb --draw-sfbdt-vary-dryrun --show-unce-breakdown --combine-bdtmod
+```
+
+The webpage is updated under `web/Xbb/<sample name>`.
+
+### Run additional fit with argument `fitVarRwgt`
+
+In V2 of the framework, we introduce an additional uncertainty term obtained from an alternative fit that applies a reweighting on the fit variable in the "pass+fail" inclusive MC. To obtain this uncertainty, we need to re-run the fit, collect the fitted SFs, calculate the uncertainty, then form the webpage. As the templates for this uncertainty are already produced in the subfolder `fitVarRwgt(Up|Down)`, we simply re-run the fit with this extra uncertainty source included via the argument ` --ext-unce fitVarRwgt` 
+
+First, make a clean copy of the produced templates under `results/fitvarrwgt`.
+
+```shell
+mkdir results/fitvarrwgt
+\cp -ar results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2 results/fitvarrwgt/
+\rm -f results/fitvarrwgt/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2/Cards/*/*/*.*
+```
+
+Then run the fit on these templates in the `CMSSW_10_2_18` env, with the extra uncertainty source `--ext-unce fitVarRwgt`.
+
+```shell
+./create_all_fit_routine.py --dir '../results/fitvarrwgt/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt central -t 10 --ext-unce fitVarRwgt
 source bg_runfit.sh
 ```
 
-Then make the webpage again. This time we append argument `--show-fitvarrwgt-unce` to show the new uncertainty source in the webpage. (`--draw-sfbdt-vary-dryrun`: no need to reproduce the sfBDT varying plots again but keep this section on HTML.)
+Then make the webpage again in the conda `cctag` env. This time we append argument `--show-fitvarrwgt-unce` to show the new uncertainty source in the webpage. The main webpage under `web/Xbb` is updated. The results produced from the `fitVarRwgt` scheme is also summarised in `web/Xbb_fitvarrwgt`.
 
 ```shell
-## Return to the conda env, then make the webpage again
-cd ..
-conda activate cctag
-./make_html.py --dir 'results/20210315_SF201?_AK15_qcd_ak_pnV02_?P_*' --bdt auto --outweb web/testdir --draw-sfbdt-vary-dryrun --show-unce-breakdown --show-fitvarrwgt-unce
+./make_html.py --dir 'results/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto --outweb web/Xbb --draw-sfbdt-vary-dryrun --show-unce-breakdown --combine-bdtmod --show-fitvarrwgt-unce
+./make_html.py --dir 'results/fitvarrwgt/20210324_bb_SF201?_pnV02_?P_msv12_dxysig_log_var22binsv2' --cfg cards/config_bb_std.yml --bdt auto --outweb web/Xbb_fitvarrwgt --show-fit-number-only
 ```
+
+## Post histogram making
+
+The notebook `post_hist.ipynb` provides code to make different types of histogram, using the backup files created in the preprocessing step. See more details in the notebook.
 
 ## Appendix
 
@@ -193,4 +229,3 @@ The script to produce the year 2017 of our test ntuples (on lxplus):
 python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/mc/   -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017
 python runHeavyFlavTrees.py -i /eos/cms/store/cmst3/group/vhcc/nanoTuples/v2_30Apr2020/2017/data/ -o <output-path>/20210102_pnV02 --sample-dir custom_samples --jet-type ak15 --channel qcd --year 2017 --run-data
 ```
-

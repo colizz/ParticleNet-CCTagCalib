@@ -19,6 +19,10 @@ class TagAndProbeExtendedV2(PhysicsModel):
             if po.startswith("categories="):  # shorthand:  categories=cat1,cat2,cat3
                 physOptions.remove(po)
                 self._categories = po.replace("categories=", "").split(",")
+            self._bound = (0.5, 2.)
+            if po.startswith("bound="):
+                physOptions.remove(po)
+                self._bound = list(map(float, po.replace("bound=", "").split(",")))
         super(TagAndProbeExtendedV2, self).setPhysicsOptions(physOptions)
 
     def doParametersOfInterest(self):
@@ -41,7 +45,7 @@ class TagAndProbeExtendedV2(PhysicsModel):
 
         pois = []
         for cat in self._categories:
-            self.modelBuilder.doVar("SF_%s[1,0.5,%.2f]" % (cat, min(sf_upper[cat], 2)))
+            self.modelBuilder.doVar("SF_{cat}[1,{low:.2f},{high:.2f}]".format(cat=cat, low=self._bound[0], high=min(sf_upper[cat], self._bound[1])))
             pois.append('SF_%s' % cat)
             self.modelBuilder.factory_('expr::fail_scale_{cat}("max(0.,{pass_exp}+{fail_exp}-({pass_exp}*@0))/{fail_exp}", SF_{cat})'.format(cat=cat, pass_exp=exp_pass[cat], fail_exp=exp_fail[cat]))
         self.modelBuilder.doSet("POI", ','.join(pois))

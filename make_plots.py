@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import uproot3 as uproot
+import uproot3
 import numpy as np
 import boost_histogram as bh
 import matplotlib.pyplot as plt
@@ -25,14 +25,19 @@ import os
 import glob
 import argparse
 parser = argparse.ArgumentParser('create all fit routine')
+parser.add_argument('--cfg', default='config.yml', help='YAML config to get global vars.')
 parser.add_argument('--dir', default=None, help='Path to the base directory of ROOT output.')
 parser.add_argument('--bdt', default='900', help='The BDT folder to run. Set e.g. `--bdt 840,860,880,900,920,940` or `--bdt auto`.')
-parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run. e.g. --ext-unce NewTerm1,NewTerm2')
+parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run or term to be excluded. e.g. --ext-unce NewTerm1,NewTerm2,~ExcludeTerm1')
 parser.add_argument('-t', '--threads', type=int, default=8, help='Concurrent threads to run separate fits.')
 args = parser.parse_args()
 
 if not args.dir:
     raise RuntimeError('--dir is not provided!')
+
+import sys, re
+if re.search('CMSSW_\d+_\d+_\d+', os.path.dirname(sys.executable)):
+    raise RuntimeError('Please use the miniconda env to run this python command.')
 
 import multiprocessing
 
@@ -54,7 +59,7 @@ def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=Tru
             break
     else:
         raise RuntimeError('Bininfo not found')
-    edges = uproot.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
+    edges = uproot3.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
     if edges[0] == -np.inf:
         edges = edges[1:]
     if edges[-1] == np.inf:
@@ -64,7 +69,7 @@ def make_stacked_plots(inputdir, plot_unce=True, save_plots=True, show_plots=Tru
     print(inputdir, '--stacked--')
     
     ## All information read from fitDiagnostics.root
-    fit = uproot.open(f'{inputdir}/fitDiagnostics.root')
+    fit = uproot3.open(f'{inputdir}/fitDiagnostics.root')
     for rootdir, title in zip(['shapes_prefit', 'shapes_fit_s'], ['prefit', 'postfit']):
         for b in ['pass', 'fail']:
             set_sns_color(color_order)
@@ -135,7 +140,7 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
     import os
     if not isinstance(unce_type, str) or not os.path.exists(f'{inputdir}/{unce_type}Up') or not os.path.exists(f'{inputdir}/{unce_type}Down'):
         raise RuntimeError('Uncertainty type not exist')
-    edges = uproot.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
+    edges = uproot3.open(f'{inputdir}/nominal/inputs_pass.root')['data_obs'].alledges
     if edges[0] == -np.inf:
         edges = edges[1:]
     if edges[-1] == np.inf:
@@ -146,10 +151,10 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
     
     # curves for unce
     for b in ['pass', 'fail']:
-        content = [uproot.open(f'{inputdir}/nominal/inputs_{b}.root')[f'{cat}'].allvalues[1:-1] for cat in cat_order[::-1]]
-        yerror  = [np.sqrt(uproot.open(f'{inputdir}/nominal/inputs_{b}.root')[f'{cat}'].allvariances[1:-1]) for cat in cat_order[::-1]]
-        content_up   = [uproot.open(f'{inputdir}/{unce_type}Up/inputs_{b}.root')[f'{cat}_{unce_type}Up'].allvalues[1:-1] for cat in cat_order[::-1]]
-        content_down = [uproot.open(f'{inputdir}/{unce_type}Down/inputs_{b}.root')[f'{cat}_{unce_type}Down'].allvalues[1:-1] for cat in cat_order[::-1]]
+        content = [uproot3.open(f'{inputdir}/nominal/inputs_{b}.root')[f'{cat}'].allvalues[1:-1] for cat in cat_order[::-1]]
+        yerror  = [np.sqrt(uproot3.open(f'{inputdir}/nominal/inputs_{b}.root')[f'{cat}'].allvariances[1:-1]) for cat in cat_order[::-1]]
+        content_up   = [uproot3.open(f'{inputdir}/{unce_type}Up/inputs_{b}.root')[f'{cat}_{unce_type}Up'].allvalues[1:-1] for cat in cat_order[::-1]]
+        content_down = [uproot3.open(f'{inputdir}/{unce_type}Down/inputs_{b}.root')[f'{cat}_{unce_type}Down'].allvalues[1:-1] for cat in cat_order[::-1]]
         lab_suf = ''
         if norm_unce:
             lab_suf = '(norm)'
@@ -191,11 +196,11 @@ def make_stacked_plots_for_shapeunc(inputdir, unce_type=None, plot_unce=True, dr
                 if vlabel[-2:] in ['-u','-o','-a']:
                     vlabel = vlabel[:-2]
 
-                content = [uproot.open(f'{inputdir}/{filedir}/inputs_{b}.root')[f'{cat}{roothist_suf}'].allvalues[1:-1] for cat in cat_order]
+                content = [uproot3.open(f'{inputdir}/{filedir}/inputs_{b}.root')[f'{cat}{roothist_suf}'].allvalues[1:-1] for cat in cat_order]
                 bkgtot = np.sum(content, axis=0)
                 hep.histplot(content, bins=edges, label=[f'MC ({cat})' for cat in cat_order], histtype='fill', edgecolor='k', linewidth=1, stack=True) ## draw MC
-                data = uproot.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvalues[1:-1]
-                data_errh = data_errl = np.sqrt(uproot.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvariances[1:-1])
+                data = uproot3.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvalues[1:-1]
+                data_errh = data_errl = np.sqrt(uproot3.open(f'{inputdir}/nominal/inputs_{b}.root')['data_obs'].allvariances[1:-1])
                 hep.histplot(data, yerr=(data_errl, data_errh), bins=edges, label='Data', histtype='errorbar', color='k', markersize=15, elinewidth=1.5) ## draw data
                 ax.set_ylim(0, ax.get_ylim()[1])
                 ax.legend()
@@ -229,15 +234,15 @@ def make_plots_wrapper(inputdir, unce_list):
 
 import yaml
 dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(dir_path, 'config.yml')) as f:
+with open(os.path.join(dir_path, args.cfg)) as f:
     config = yaml.safe_load(f)
 
-if config['tagger']['type'].lower() == 'cc':
+if config['type'].lower() == 'cc':
     flv1, flv2 = 'C', 'B'
-elif config['tagger']['type'].lower() == 'bb':
+elif config['type'].lower() == 'bb':
     flv1, flv2 = 'B', 'C'
 else:
-    raise RuntimeError('Tagger type in config.yml must be cc or bb.')
+    raise RuntimeError(f'Tagger type in {args.cfg} must be cc or bb.')
 
 lumi = {2016: 35.92, 2017: 41.53, 2018: 59.74}
 bininfo_dm = [ # vtitle_contains, vlabel
@@ -248,7 +253,11 @@ bininfo_dm = [ # vtitle_contains, vlabel
 color_order, cat_order = sns.color_palette('cubehelix_r', 3), ['flvL', f'flv{flv2}', f'flv{flv1}']
 unce_list = ['pu','fracBB','fracCC','fracLight','psWeightIsr','psWeightFsr','sfBDTRwgt']
 if args.ext_unce is not None:
-    unce_list += args.ext_unce.split(',')
+    for ext_unce in args.ext_unce.split(','):
+        if not ext_unce.startswith('~'):
+            unce_list.append(ext_unce)
+        else:
+            unce_list.remove(ext_unce[1:])
 
 from cmssw.utils import find_valid_runlist
 

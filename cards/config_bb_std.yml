@@ -1,0 +1,68 @@
+## ====================================================================================================
+## Routine name
+routine_name: 20210324_bb
+
+year: 2016
+
+## Type of the tagger, can be 'cc' or 'bb'
+type: bb
+
+## Sample configuration
+samples:
+  ## Name used as an identifier for storing backup files
+  name: 20210324_bb
+
+  ## Prefix of the main samples produced from NanoHRT
+  # 'sample_prefix' follows the name format as produced by NanoHRT-tools (see README)
+  sample_prefix: samples/trees_sf/particlenet_ak8_20210113_ak8_qcd
+  
+  # if or not using the additional b-enriched input
+  use_bflav: False
+
+## Name and class of the tagger
+tagger:
+  ## The variable name of the tagger (use fj_x as a placeholder of fj_1 & fj_2)
+  var: fj_x_ParticleNetMD_XbbVsQCD
+
+  # Working points of the tagger for calibration ('name' and keys of 'range' used only as identifiers)
+  working_points:
+    name: pnV02bb
+    range: {HP: [0.98, 1.], MP: [0.94, 0.98], LP: [0.90, 0.94]}
+
+## Jet pT ranges for fit ('name' used as an identifier)
+pt_range:
+  name: pt200w100
+  range: [[200, 300], [300, 400], [400, 500], [500, 600], [600, 800], [800, 100000]]
+
+## ====================================================================================================
+## Additional config needed in preprocessing step 3-2: the signal X->cc (or X->bb) tree and the 
+## selections used in the main analysis ('name' used as an identifier)
+main_analysis_tree:
+  name: vhbb_H_daus_08
+
+  ## The sample path: can be relative or absolute path. $YEAR is a placeholder of year in format e.g. 2018
+  ## treename: the name of the tree to read in the file
+  path: samples/trees/20210205_MREG_V01abc_ak8_diboson_$YEAR/LHEWeight/vhbb_tree.root
+  treename: Events
+
+  ## The selection used for this sample in the main analysis. This is how we enable that the g->cc 
+  ## (or g->bb) jets serve as a reasonable proxy to the signal jets under the phase-space defined below
+  ## *NOTE*: should always use parentheses between & and |
+  selection: (fj_1_H_pt>150) & (fj_1_pt>200) & (fj_1_dr_Z>2.5) & (fj_1_dr_H<0.8) & (fj_1_dr_H_daus<0.8)
+  
+  ## Name of the same tagger defined in this tree
+  tagger: fj_1_ParticleNetMD_XbbVsQCD
+  
+  ## Name of jet pT var defined in this tree
+  pt_var: fj_1_pt
+
+  ## Event weight expression
+  weight: genWeight*xsecWeight*puWeight
+  
+  ## Signal label to make the signal/proxy plots
+  label: '$VH(bb)$'
+
+  ## (Optional) additional variables only used in step 3-5
+  addition_var:
+    mass: fj_1_sdmass
+    tau21: fj_1_tau21

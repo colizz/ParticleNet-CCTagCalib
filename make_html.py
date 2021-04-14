@@ -6,16 +6,19 @@ import shutil
 import numpy as np
 import argparse
 parser = argparse.ArgumentParser('create all fit routine')
+parser.add_argument('--cfg', default='config.yml', help='YAML config to get global vars.')
 parser.add_argument('--dir', default=None, help='Path to the base directory of ROOT output.')
 parser.add_argument('--outweb', default=None, help='Output relative directory to contain the website elements.')
 parser.add_argument('--bdt', default='900', help='The BDT folder to run. Set to a single value or use `--bdt auto`.')
-parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run. e.g. --ext-unce NewTerm1,NewTerm2')
+parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run or term to be excluded. e.g. --ext-unce NewTerm1,NewTerm2,~ExcludeTerm1')
 parser.add_argument('--show-fit-number-only', action='store_true', help='Only summerise the fit result without copying all the plots to the web folder.')
 parser.add_argument('--draw-sfbdt-vary', action='store_true', help='Make the plots for SF as a function of sfBDT cut value.')
 parser.add_argument('--draw-sfbdt-vary-dryrun', action='store_true', help='Make the plots for SF as a function of sfBDT cut value (dry run -- do not make new plots, but organize the webpage as if the plots exist).')
+parser.add_argument('--draw-sfbdt-vary-set-ymax', default=1.8, help='Set the y-max of the sfBDT variation plot for the *main* SF.')
 parser.add_argument('--draw-sfbdt-vary-with-bl', action='store_true', help='Use together with --draw-sfbdt-vary(-dryrun). Also draw SF_b and SF_light plots as a function of sfBDT cut value.')
 parser.add_argument('--show-unce-breakdown', action='store_true', help='Show the uncertainty breakdown plots')
 parser.add_argument('--show-fitvarrwgt-unce', action='store_true', help='Show the extra uncertainty in the table obtained from an alternative reweighting on the fit variable')
+parser.add_argument('--combine-bdtmod', action='store_true', help='In the calculation of err(max d), include the sfBDT variation fit results in the modified BDT cut scheme')
 args = parser.parse_args()
 
 if not args.dir:
@@ -23,6 +26,10 @@ if not args.dir:
 if not args.outweb:
     raise RuntimeError('--outweb is not provided!')
 
+import sys, re
+if re.search('CMSSW_\d+_\d+_\d+', os.path.dirname(sys.executable)):
+    raise RuntimeError('Please use the miniconda env to run this python command.')
+                
 def get_dir(indir, wp, bdtdir, ptdir):
     assert f'_{wp0}_' in indir
     import glob
@@ -88,7 +95,7 @@ def draw_sfbdtvary_plot(indir, wp, pt, ptcut, bdtlist, sf, savepath=None):
     mpl.use('AGG') # no rendering plots in the window
     
     if sf == flv1:
-        ymax, facecolor = 1.8, 'yellow'
+        ymax, facecolor = float(args.draw_sfbdt_vary_set_ymax), 'yellow'
     elif sf == flv2:
         ymax, facecolor = 3.0, 'greenyellow'
     elif sf == 'L':
@@ -129,7 +136,7 @@ def draw_sfbdtvary_plot(indir, wp, pt, ptcut, bdtlist, sf, savepath=None):
     ax.fill_between(bdtvalues, np.array(center)+np.array(errl), np.array(center)+np.array(errh), edgecolor='darkblue', facecolor=facecolor, linewidth=0) ## draw bkg unce.
     
     # Plot central box
-    cidx = int((len(bdtlist)-1)/2)
+    cidx = int(len(bdtlist)/2)
     make_error_boxes(ax, xdata=[bdtvalues[cidx]], ydata=[center[cidx]],
                      xerror=np.array([[(bdtvalues[cidx]-bdtvalues[cidx-1])/4],[(bdtvalues[cidx+1]-bdtvalues[cidx])/4]]),
                      yerror=np.array([[-errl[cidx]], [errh[cidx]]]), 
@@ -170,7 +177,7 @@ def make_website(indir, basedir, outdir, ptlist, user_pt_bdt_map, user_pt_bdtvar
     if flv1 == 'C':
         sf_title = {'C':'cc-tagging SF (`SF_flvC`)', 'B':'bb-mistagging SF (`SF_flvB`)', 'L':'light-mistagging SF (`SF_flvL`)'}
     elif flv1 == 'B':
-        sf_title = {'B':'bb-tagging SF (`SF_flvC`)', 'C':'cc-mistagging SF (`SF_flvB`)', 'L':'light-mistagging SF (`SF_flvL`)'}
+        sf_title = {'B':'bb-tagging SF (`SF_flvB`)', 'C':'cc-mistagging SF (`SF_flvC`)', 'L':'light-mistagging SF (`SF_flvL`)'}
     for sf in sf_list:
         mkdown_str += f'## {sf_title[sf]} \n'
         mkdown_str += '|       | ' + ' | '.join(['pT ({}, {})'.format(ptmin, ptmax if ptmax!=100000 else '+inf') for ptmin, ptmax in ptcutlist]) + ' | \n'
@@ -183,7 +190,9 @@ def make_website(indir, basedir, outdir, ptlist, user_pt_bdt_map, user_pt_bdtvar
                 print(f'multifit failed... ', wp, 'central SFs: ', center)
         ## extra uncertainty on BDT variation
         if args.bdt == 'auto' and (args.draw_sfbdt_vary or args.draw_sfbdt_vary_dryrun) and sf == sf_list[0]:
-            mkdown_str += f'## {sf_title[sf]} (after BDT variation correction) \n'
+            mkdown_str += f'## {sf_title[sf]} (after external correction from BDT variation and/or fit variable reweigting) \n'
+            if args.combine_bdtmod:
+                mkdown_str += '(*Note: in the calculation of err(max d), sfBDT variation fit results in the modified BDT cut scheme are also included.) \n\n'
             mkdown_str += '|       | ' + ' | '.join(['pT ({}, {})'.format(ptmin, ptmax if ptmax!=100000 else '+inf') for ptmin, ptmax in ptcutlist]) + ' | \n'
             mkdown_str += '| :---: '*(len(ptlist)+1) + '| \n'
             for wp in scanned_wp_list:
@@ -195,14 +204,18 @@ def make_website(indir, basedir, outdir, ptlist, user_pt_bdt_map, user_pt_bdtvar
                     assert isinstance(loglist, list)
                     center, _, _ = read_sf_from_log(loglist, sf=sf)
                     center = np.array([float(c) for c in center if c != 'nan'])
+                    if args.combine_bdtmod:
+                        indir = indir[:-1] if indir[-1]=='/' else indir
+                        indir_fvr ='/'.join([indir.rsplit('/', 1)[0], 'bdtmod', indir.rsplit('/', 1)[1]]) # the indir path for bdtmod
+                        loglist = [os.path.join(d, 'fit.log') for d in get_dir(indir_fvr, wp, 'bdt*', pt)]  ## get all logs for BDT variation in the path of bdtmod
+                        center_mod, _, _ = read_sf_from_log(loglist, sf=sf)
+                        center_mod = np.array([float(c) for c in center_mod if c != 'nan'])
+                        center = np.concatenate([center, center_mod])  # concat results
                     center0, errl0, errh0 = read_sf_from_log([os.path.join(get_dir(indir, wp, user_pt_bdt_map[pt], pt), 'fit.log')], sf=sf)
                     center0, errl0, errh0 = float(center0[0]), float(errl0[0]), float(errh0[0])
                     if args.show_fitvarrwgt_unce:
-                        if indir[-1]=='/':
-                            indir = indir[:-1]
-                        indir_fvr = indir.rsplit('/', 1)
-                        indir_fvr.insert(1, 'fitvarrwgt')
-                        indir_fvr ='/'.join(indir_fvr)
+                        indir = indir[:-1] if indir[-1]=='/' else indir
+                        indir_fvr ='/'.join([indir.rsplit('/', 1)[0], 'fitvarrwgt', indir.rsplit('/', 1)[1]]) # the indir path for fitvarrwgt
                         center0_fvr, _, _ = read_sf_from_log([os.path.join(get_dir(indir_fvr, wp, user_pt_bdt_map[pt], pt), 'fit.log')], sf=sf)
                         center0_fvr = float(center0_fvr[0])
                         err_fvr = np.abs(center0_fvr - center0)
@@ -317,6 +330,7 @@ def make_website(indir, basedir, outdir, ptlist, user_pt_bdt_map, user_pt_bdtvar
         mkdown_str += '------------------\n'
 
     if args.show_unce_breakdown:
+        title
         mkdown_str += '# cc-tagging SF uncetainty breakdown for syst. and stat. \n'
         for wp in scanned_wp_list:
             mkdown_str += f'## **{wpname[wp]}** WP: \nLeft to right: pT in ' + ', '.join(['({}, {})'.format(ptmin, ptmax if ptmax!=100000 else '+inf') for ptmin, ptmax in ptcutlist]) + '\n\n'
@@ -414,15 +428,15 @@ $TEXT
 
 import yaml
 dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(dir_path, 'config.yml')) as f:
+with open(os.path.join(dir_path, args.cfg)) as f:
     config = yaml.safe_load(f)
 
-if config['tagger']['type'].lower() == 'cc':
+if config['type'].lower() == 'cc':
     flv1, flv2 = 'C', 'B'
-elif config['tagger']['type'].lower() == 'bb':
+elif config['type'].lower() == 'bb':
     flv1, flv2 = 'B', 'C'
 else:
-    raise RuntimeError('Tagger type in config.yml must be cc or bb.')
+    raise RuntimeError(f'Tagger type in {args.cfg} must be cc or bb.')
 
 wp_list = list(config['tagger']['working_points']['range'].keys())
 wp0 = wp_list[0]
@@ -433,7 +447,11 @@ wpname_dict = {'HP':'High purity', 'TP':'High purity', 'MP':'Medium purity', 'LP
 wpname = {wp:(wpname_dict[wp] if wp in wpname_dict else wp) for wp in wp_list}
 unce_list = ['pu','fracBB','fracCC','fracLight','psWeightIsr','psWeightFsr','sfBDTRwgt']
 if args.ext_unce is not None:
-    unce_list += args.ext_unce.split(',')
+    for ext_unce in args.ext_unce.split(','):
+        if not ext_unce.startswith('~'):
+            unce_list.append(ext_unce)
+        else:
+            unce_list.remove(ext_unce[1:])
 
 dic_ptlist = {}
 dic_user_pt_bdtvarylist_map = {}
@@ -477,7 +495,7 @@ for basedir in dic_user_pt_bdtvarylist_map.keys():
             assert 'bdt'+args.bdt in dic_user_pt_bdtvarylist_map[basedir][pt]
             dic_user_pt_bdt_map[basedir][pt] = 'bdt'+args.bdt
         else:
-            dic_user_pt_bdt_map[basedir][pt] = dic_user_pt_bdtvarylist_map[basedir][pt][int((n_bdt-1)/2)]
+            dic_user_pt_bdt_map[basedir][pt] = dic_user_pt_bdtvarylist_map[basedir][pt][int(n_bdt/2)]
 
 for indir in glob.glob(args.dir):
     if f'_{wp0}_' in indir:

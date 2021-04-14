@@ -8,19 +8,21 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(m
 import argparse
 parser = argparse.ArgumentParser('Preprocess ntuples')
 parser.add_argument('inputdir', help='Input diretory.')
-parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run. e.g. --ext-unce NewTerm1,NewTerm2')
+parser.add_argument('--cfg', default='config.yml', help='YAML config to get global vars.')
+parser.add_argument('--ext-unce', default=None, help='Extra uncertainty term to run or term to be excluded. e.g. --ext-unce NewTerm1,NewTerm2,~ExcludeTerm1')
+parser.add_argument('--bound', default=None, help='Set the bound of three SFs, e.g. --bound 0.5,2 (which are the default values)')
 parser.add_argument('--run-impact', action='store_true', help='Run impact plots.')
 parser.add_argument('--run-unce-breakdown', action='store_true', help='Run uncertainty breakdown')
 args = parser.parse_args()
 
 import yaml
 dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(os.path.join(dir_path, '../config.yml')) as f:
+with open(os.path.join(dir_path, '../'+args.cfg)) as f:
     config = yaml.safe_load(f)
 
-if config['tagger']['type'].lower() == 'cc':
+if config['type'].lower() == 'cc':
     flv_poi1, flv_poi2 = 'flvC', 'flvB'
-elif config['tagger']['type'].lower() == 'bb':
+elif config['type'].lower() == 'bb':
     flv_poi1, flv_poi2 = 'flvB', 'flvC'
 else:
     raise RuntimeError('Tagger type in config.yml must be cc or bb.')
@@ -73,7 +75,10 @@ shapeSysts = {
     }
 if args.ext_unce is not None:
     for ext_unce in args.ext_unce.split(','):
-        shapeSysts[ext_unce] = all_procs
+        if not ext_unce.startswith('~'):
+            shapeSysts[ext_unce] = all_procs
+        else:
+            shapeSysts.pop(ext_unce[1:], None)
 
 for syst in shapeSysts:
     cb.cp().process(shapeSysts[syst]).AddSyst(cb, syst, 'shape', ch.SystMap()(1.0))
@@ -131,11 +136,11 @@ with open(os.path.join(args.inputdir, outputname), 'w') as fout:
 runcmd('''
 cd {inputdir} && \
 echo "+++ Converting datacard to workspace +++" && \
-text2workspace.py -m 125 -P HiggsAnalysis.CombinedLimit.TagAndProbeExtendedV2:tagAndProbe SF.txt --PO categories={flv_poi1},{flv_poi2},flvL && \
+text2workspace.py -m 125 -P HiggsAnalysis.CombinedLimit.TagAndProbeExtendedV2:tagAndProbe SF.txt --PO categories={flv_poi1},{flv_poi2},flvL {ext_po} && \
 echo "+++ Fitting... +++" && \
 combine -M MultiDimFit -m 125 SF.root --algo=singles --robustFit=1 | tee fit.log && \
 combine -M FitDiagnostics -m 125 SF.root --saveShapes --saveWithUncertainties --robustFit=1 > /dev/null 2>&1
-'''.format(inputdir=args.inputdir, flv_poi1=flv_poi1, flv_poi2=flv_poi2)
+'''.format(inputdir=args.inputdir, flv_poi1=flv_poi1, flv_poi2=flv_poi2, ext_po='' if args.bound is None else '--PO bound='+args.bound)
 )
 
 if args.run_impact:

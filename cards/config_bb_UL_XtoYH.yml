@@ -1,0 +1,68 @@
+## ====================================================================================================
+## Routine name
+routine_name: 20210408_bb_UL_XtoYH
+
+year: 2018
+
+## Type of the tagger, can be 'cc' or 'bb'
+type: bb
+
+## Sample configuration
+samples:
+  ## Name used as an identifier for storing backup files
+  name: 20210330_bb_UL
+
+  ## Prefix of the main samples produced from NanoHRT
+  # 'sample_prefix' follows the name format as produced by NanoHRT-tools (see README)
+  sample_prefix: samples/trees_sf/20210330_UL_ak8_qcd
+  
+  # if or not using the additional b-enriched input
+  use_bflav: False
+
+## Name and class of the tagger
+tagger:
+  ## The variable name of the tagger (use fj_x as a placeholder of fj_1 & fj_2)
+  var: fj_x_ParticleNetMD_XbbVsQCD
+
+  # Working points of the tagger for calibration ('name' and keys of 'range' used only as identifiers)
+  working_points:
+    name: pnNanoV8
+    range: {HP: [0.95, 1.], LP: [0.90, 0.95]}
+
+## Jet pT ranges for fit ('name' used as an identifier)
+pt_range:
+  name: pt450w100
+  range: [[450, 550], [550, 650], [650, 800], [800, 100000]]
+
+## ====================================================================================================
+## Additional config needed in preprocessing step 3-2: the signal X->cc (or X->bb) tree and the 
+## selections used in the main analysis ('name' used as an identifier)
+main_analysis_tree:
+  name: XtoYH_MX1600_MY200
+
+  ## The sample path: can be relative or absolute path. $YEAR is a placeholder of year in format e.g. 2018;
+  ## treename: the name of the tree to read in the file
+  path: samples/trees/20200408_UL_X_YH_$YEAR/MX1600_MY200_nom.root
+  treename: Events
+
+  ## The selection used for this sample in the main analysis. This is how we enable that the g->cc 
+  ## (or g->bb) jets serve as a reasonable proxy to the signal jets under the phase-space defined below
+  ## *NOTE*: should always use parentheses between & and |
+  selection: np.abs(DeltaEta)<1.3
+  
+  ## Name of the same tagger defined in this tree
+  tagger: pnetY
+  
+  ## Name of jet pT var defined in this tree
+  pt_var: ptjY
+
+  ## Event weight expression
+  weight: genWeight
+  
+  ## Signal label to make the signal/proxy plots
+  label: '$X\to HY$, $Y\to bb$'
+
+  ## (Optional) additional variables only used in step 3-5
+  addition_var:
+    mass: MJY
+    tau21: 

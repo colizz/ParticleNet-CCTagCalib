@@ -1,0 +1,73 @@
+## ====================================================================================================
+## Routine name
+routine_name: 20210330_ak15_bbmistag_matchMuons
+
+year: 2017
+
+## Type of the tagger, can be 'cc' or 'bb'
+type: bb
+
+## Sample configuration
+samples:
+  ## Name used as an identifier for storing backup files
+  name: 20210330_ak15_matchMuons
+  
+  ## Prefix of the main samples produced from NanoHRT
+  # 'sample_prefix' follows the name format as produced by NanoHRT-tools (see README)
+  sample_prefix: samples/trees_sf/20210330_pnV02_matchMuons_ak15_qcd
+  
+  # if or not using the additional b-enriched input
+  use_bflav: False
+  
+  optional:
+    additional_selection_in_making_template: (fj_x_sj1_matchallmu+fj_x_sj2_matchallmu)>=2
+
+## Name and class of the tagger
+tagger:
+  ## The variable name of the tagger (use fj_x as a placeholder of fj_1 & fj_2)
+  var: fj_x_ParticleNetMD_XccVsQCD
+  
+  # Working points of the tagger for calibration ('name' and keys of 'range' used only as identifiers)
+  working_points:
+    name: pnV02
+    range: {HP: [0.99, 1.], MP: [0.96, 0.99], LP: [0.90, 0.96]}
+
+## Jet pT ranges for fit ('name' used as an identifier)
+pt_range:
+#   name: pt250w100
+#   range: [[250, 350], [350, 450], [450, 100000]]
+  name: pt200incl
+  range: [[200, 500]]
+
+## ====================================================================================================
+## Additional config needed in preprocessing step 3-2: the signal X->cc (or X->bb) tree and the 
+## selections used in the main analysis ('name' used as an identifier)
+main_analysis_tree:
+  name: vhbb_cc_score
+
+  ## The sample path: can be relative or absolute path. $YEAR is a placeholder of year in format e.g. 2018
+  ## treename: the name of the tree to read in the file
+  path: ../samples/trees/20210117_VH_extjetvar_bb_$YEAR_2L/mc/vhbb_tree.root
+  treename: Events
+
+  ## The selection used for this sample in the main analysis. This is how we enable that the g->cc 
+  ## (or g->bb) jets serve as a reasonable proxy to the signal jets under the phase-space defined below
+  ## *NOTE*: should always use parentheses between & and |
+  selection: (v_mass>75) & (v_mass<105) & (((np.abs(lep1_pdgId)==11) & passTrigEl) | ((np.abs(lep1_pdgId)==13) & passTrigMu)) & (v_pt>200) & (ak15_pt>200) & (dphi_V_ak15>2.5) & (ak15_sdmass>50) & (ak15_sdmass<200) & (n_ak4<3)
+  
+  ## Name of the same tagger defined in this tree
+  tagger: ak15_ParticleNetMD_HccVsQCD
+  
+  ## Name of jet pT var defined in this tree
+  pt_var: ak15_pt
+
+  ## Event weight expression
+  weight: genWeight*xsecWeight*puWeight
+  
+  ## Signal label to make the signal/proxy plots
+  label: '$VH(bb)$'
+
+  ## (Optional) additional variables only used in step 3-5
+  addition_var:
+    mass: ak15_sdmass
+    tau21: ak15_tau21

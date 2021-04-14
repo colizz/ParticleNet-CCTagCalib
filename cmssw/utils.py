@@ -30,8 +30,7 @@ def find_valid_runlist(regdir, bdt_mode):
                 inputdirs = []
                 for pt in os.listdir(os.path.join(abspath, sam, 'Cards')):
                     bdt_list = os.listdir(os.path.join(abspath, sam, 'Cards', pt))
-                    assert len(bdt_list) % 2 == 1
-                    inputdirs.append(os.path.join(abspath, sam, 'Cards', pt, sorted(bdt_list)[int((len(bdt_list)-1)/2)]))
+                    inputdirs.append(os.path.join(abspath, sam, 'Cards', pt, sorted(bdt_list)[int(len(bdt_list)/2)]))
             else:
                 inputdirs = [
                     os.path.join(abspath, sam, 'Cards', pt, 'bdt'+bdtval) 
