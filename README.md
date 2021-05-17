@@ -238,3 +238,5 @@ python runHeavyFlavTrees.py -i /eos/uscms/store/group/lpcjme/nanoTuples/v2_30Apr
 ```
 
 For UL datasets, the framework is under development.
+
+Note: after the condor jobs complete, please remember to run the same command appended with `--post`. This procedure post-process the output ROOT file (adding `xsecWeight`) then combine them into one per sample. See more in [NanoHRT-tools](https://github.com/hqucms/NanoHRT-tools) README.
