@@ -67,3 +67,37 @@ def plot_hist(hists, normed=False, **kwargs):
         content, yerr = content[0], yerr[0]
     hep.histplot(content, bins=bins, yerr=yerr, **kwargs)
 
+
+from coffea.nanoevents.methods.base import NanoEventsArray
+import awkward1 as ak
+import pickle
+import os
+
+class ExtendedNanoEventsArray(NanoEventsArray):
+    r"""Extend the functionality of the coffea NanoEventsArray: 
+    store and read new variables from disk rather than having everything in memory
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def __setitem__(self, key, value):
+        # overwrite an existing item or set an new item: always write the array to the backup disk
+        # the mechanism of __getitem__ ensures that the newest values will always be loaded
+        with open(os.path.join(self._backup_path, key), 'wb') as fw:
+            pickle.dump(value, fw)
+
+    def __getitem__(self, key):
+        if key in self._awkward_items and key not in os.listdir(self._backup_path):
+            return super().__getitem__(key)
+        else:
+            with open(os.path.join(self._backup_path, key), 'rb') as f:
+                return pickle.load(f)
+    
+
+    def record_awkward_items(self):
+        self._awkward_items = ak.fields(self)
+    def set_backup_path(self, dirpath):
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        self._backup_path = dirpath
