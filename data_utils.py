@@ -87,13 +87,18 @@ class ExtendedNanoEventsArray(NanoEventsArray):
         with open(os.path.join(self._backup_path, key), 'wb') as fw:
             pickle.dump(value, fw)
 
-    def __getitem__(self, key):
+    def __getitem__(self, item):
+        if not isinstance(item, list):
+            return self._get_single_item(item)
+        else:
+            return ak.zip({k: self._get_single_item(k) for k in item})
+
+    def _get_single_item(self, key):
         if key in self._awkward_items and key not in os.listdir(self._backup_path):
             return super().__getitem__(key)
         else:
             with open(os.path.join(self._backup_path, key), 'rb') as f:
                 return pickle.load(f)
-    
 
     def record_awkward_items(self):
         self._awkward_items = ak.fields(self)
