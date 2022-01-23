@@ -1,6 +1,10 @@
 # ParticleNet-CCTagCalib
 
-> The repo will be renamed as it has been upgraded to a general tool to calibrate any boosted-jet tagger for bb/cc type.
+## This repo has been DEPRECATED
+
+Please take note that the tool has moved to [`boohft-calib`](https://github.com/colizz/boohft-calib/) since Jan 2022.
+
+--------
 
 This mini repository aims to derive ParticleNet AK15 cc-tagger scale factors (SF), based on the g->cc proxy jet method.
 The introduction of the method can be found in [these slides (final version: Mar.8)](https://indico.cern.ch/event/1014620/contributions/4265127/attachments/2203682/3728092/20.03.08_BTV_Update%20on%20ParticleNet%20SF%20method.pdf). Detailed documentation is provided in [AN-21-005](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2021/005). All derived SFs are summarized in [this link](https://coli.web.cern.ch/coli/repo/ParticleNet-CCTagCalib/sf_summary).
